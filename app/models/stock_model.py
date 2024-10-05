@@ -1,16 +1,16 @@
-# app/models/stock_model.py
-
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
+from sqlalchemy import Column, String, Integer, Float, Date, JSON
+from database.database import Base
 
 class Stock(Base):
     __tablename__ = 'stocks'
     
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    price = Column(Integer)
-
-    def __repr__(self):
-        return f"<Stock(name='{self.name}', price='{self.price}')>"
+    status = Column(String, index=True)
+    purchased_amount = Column(Integer)
+    purchased_status = Column(String)
+    request_data = Column(Date)
+    company_code = Column(String)
+    company_name = Column(String)
+    stock_values = Column(JSON)
+    performance_data = Column(JSON)
+    competitors = Column(JSON)
