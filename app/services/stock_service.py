@@ -1,18 +1,21 @@
-# app/services/stock_service.py
-
 from sqlalchemy.orm import Session
-from models.stock_model import Stock
-from schemas.stock_schema import StockCreate
+from app.models.stock_model import Stock
+from app.schemas.stock_schema import StockCreate
 
-class StockService:
-    @staticmethod
-    def create_stock(db: Session, stock: StockCreate):
-        db_stock = Stock(name=stock.name, price=stock.price)
-        db.add(db_stock)
+def get_stock_by_symbol(db: Session, symbol: str):
+    return db.query(Stock).filter(Stock.company_code == symbol).first()
+
+def create_stock(db: Session, stock: StockCreate):
+    db_stock = Stock(**stock.model_dump())
+    db.add(db_stock)
+    db.commit()
+    db.refresh(db_stock)
+    return db_stock
+
+def update_stock_amount(db: Session, symbol: str, amount: int):
+    stock = get_stock_by_symbol(db, symbol)
+    if stock:
+        stock.purchased_amount += amount
         db.commit()
-        db.refresh(db_stock)
-        return db_stock
-
-    @staticmethod
-    def get_stock(db: Session, stock_id: int):
-        return db.query(Stock).filter(Stock.id == stock_id).first()
+        db.refresh(stock)
+    return stock
