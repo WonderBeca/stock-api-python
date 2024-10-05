@@ -1,0 +1,47 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.so
+
+# Virtual environment
+venv/
+ENV/
+env/
+.venv/
+*.env
+
+# VSCode settings
+.vscode/
+*.code-workspace
+
+# Docker-related files
+*.log
+*.tmp
+docker-compose.override.yml
+.env
+
+# Pytest cache and coverage
+.pytest_cache/
+coverage/
+coverage.xml
+htmlcov/
+
+# SQLite database files (if applicable)
+*.sqlite3
+*.db
+
+# Python egg files
+*.egg-info/
+.eggs/
+
+# IDE settings
+.idea/
+
+# Logs and temp files
+*.log
+*.temp
+
+pgdata/
