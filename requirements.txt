@@ -6,3 +6,13 @@ asyncpg
 pydantic
 beautifulsoup4
 pytest
+requests
+selenium
+webdriver-manager
+py-proxy
+fake-useragent
+geckodriver
+Pillow
+numpy
+opencv-python
+2captcha-python
