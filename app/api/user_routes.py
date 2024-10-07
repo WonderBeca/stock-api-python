@@ -6,7 +6,6 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.database import get_db
 from app.models.user_model import User
-from app.schemas.user_schema import UserCreate
 from app.utils.auth_utils import create_access_token
 from passlib.context import CryptContext
 from sqlalchemy.future import select
@@ -78,6 +77,8 @@ async def login(
     # Gera o token de acesso
     access_token = create_access_token(data={"sub": user.username})
 
-    # Aqui você pode armazenar o token em uma sessão ou cookies, se necessário
-    # Para o exemplo, vamos apenas retornar o token na resposta (ou redirecionar)
     return templates.TemplateResponse("welcome.html", {"request": request, "token": access_token})
+
+@router.get("/stock", response_class=HTMLResponse)
+async def stock_form(request: Request):
+    return templates.TemplateResponse("stock_search.html", {"request": request})

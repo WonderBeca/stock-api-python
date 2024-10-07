@@ -3,8 +3,6 @@ from bs4 import BeautifulSoup
 from app.schemas.stock_schema import StockCreate, StockValues, PerformanceData, Competitor
 import os
 
-SSO_URL = "https://sso.accounts.dowjones.com"
-
 class MarketWacth():
     def __init__(self, proxy: str = "", skip_login: bool = False):
         """

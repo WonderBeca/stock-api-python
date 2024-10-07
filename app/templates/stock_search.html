@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Consulta de Ações</title>
+</head>
+<body>
+    <h1>Consulta de Ações</h1>
+    <form action="/stock" method="post">
+        <label for="stock_symbol">Digite o símbolo da ação:</label>
+        <input type="text" id="stock_symbol" name="stock_symbol" required>
+        <button type="submit">Consultar</button>
+    </form>
+    {% if stock %}
+        <h2>Resultados para: {{ stock.company_name }}</h2>
+        <p>Preço de abertura: {{ stock.stock_values.open }}</p>
+        <p>Preço máximo: {{ stock.stock_values.high }}</p>
+        <p>Preço mínimo: {{ stock.stock_values.low }}</p>
+        <p>Preço de fechamento: {{ stock.stock_values.close }}</p>
+        <h3>Concorrentes:</h3>
+        <ul>
+            {% for competitor in stock.competitors %}
+                <li>{{ competitor.name }} - Capitalização de Mercado: {{ competitor.market_cap.currency }}{{ competitor.market_cap.value }}</li>
+            {% endfor %}
+        </ul>
+    {% elif error %}
+        <p>{{ error }}</p>
+    {% endif %}
+</body>
+</html>
