@@ -1,14 +1,15 @@
 from fastapi import FastAPI
-from fastapi import Request, Depends
-from fastapi.responses import JSONResponse
-from database import init_db
-from api.stock_routes import router as stock_router
+from contextlib import asynccontextmanager
+from app.database.database import init_db
+from app.api.stock_routes import router as stock_router
+from app.api.user_routes import router as user_router
 
-app = FastAPI()
-
-@app.middleware("http")
-async def lifespan(request: Request):
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await init_db()
-    yield 
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 app.include_router(stock_router)
+app.include_router(user_router)

@@ -25,10 +25,8 @@ Base = declarative_base()
 # Function to initialize the database
 async def init_db():
     async with engine.begin() as conn:
-        # Optionally create the database tables here
         await conn.run_sync(Base.metadata.create_all)
 
-# Function to get a database session
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session

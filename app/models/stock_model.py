@@ -1,16 +1,20 @@
-# app/models/stock_model.py
+from sqlalchemy import Column, String, Integer, Float, Date, JSON, UUID
+import uuid
+from app.database.database import Base
 
-from sqlalchemy import Column, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
-
-Base = declarative_base()
-
+class Competitor(Base):
+    __tablename__ = 'competitors'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    market_cap = Column(JSON) 
 class Stock(Base):
     __tablename__ = 'stocks'
     
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    price = Column(Integer)
-
-    def __repr__(self):
-        return f"<Stock(name='{self.name}', price='{self.price}')>"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    request_data = Column(Date)
+    company_code = Column(String)
+    company_name = Column(String)
+    stock_values = Column(JSON)
+    performance_data = Column(JSON)
+    competitors = Column(JSON)
