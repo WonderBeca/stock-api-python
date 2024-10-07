@@ -19,10 +19,6 @@ class Competitor(BaseModel):
     market_cap: dict
 
 class StockBase(BaseModel):
-    status: str
-    purchased_amount: int
-    purchased_status: str
-    request_data: str
     company_code: str
     company_name: str
     stock_values: StockValues

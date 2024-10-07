@@ -9,10 +9,9 @@ pytest
 requests
 selenium
 webdriver-manager
-py-proxy
-fake-useragent
-geckodriver
-Pillow
-numpy
-opencv-python
-2captcha-python
+marketwatch
+passlib[bcrypt]==1.7.4
+python-jose==3.3.0
+pydantic==1.10.7
+python-multipart==0.0.6
+jinja2==3.1.2

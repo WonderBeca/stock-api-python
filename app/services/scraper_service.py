@@ -1,98 +1,195 @@
+import httpx
+from bs4 import BeautifulSoup
+from app.schemas.stock_schema import StockCreate, StockValues, PerformanceData, Competitor
 import os
-import io
-import time
-from twocaptcha import TwoCaptcha
-import logging
-from fake_useragent import UserAgent
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
-from PIL import Image
-import tempfile
-from selenium.webdriver.common.by import By
-import random
 
-# Configuração do logger
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+SSO_URL = "https://sso.accounts.dowjones.com"
 
-API_KEY = os.getenv('API_KEY')
+class MarketWacth():
+    def __init__(self, proxy: str = "", skip_login: bool = False):
+        """
+        Initialize the MarketWatch API
 
+        :param email: Email
+        :param password: Password
+        :param proxy: Proxy URL (optional)
+        :param skip_login: If True, skip the login process (useful for certain non-authenticated calls).
+        """
+        self.email = os.getenv('MARKETWATCH_USER')
+        self.password = os.getenv('MARKETWATCH_PWD')
+        self.client_id = os.getenv('MARKETWATCH_ID', '5hssEAdMy0mJTICnJNvC9TXEw3Va7jfO')
+        self.proxy = proxy
+        self.cookies = httpx.Cookies()
+        self.session = self.create_session()
 
-def setup_options_browser():
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument(f"user-agent={get_random_user_agent()}")
-    return options
+    def create_session(self):
+        inconspicuous_user = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.109 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Referer": "https://www.google.com/"
+        }
 
-
-def get_random_user_agent():
-    user_agent = UserAgent()
-    return user_agent.random
-
-
-def solve_captcha(image_path):
-    solver = TwoCaptcha(API_KEY)
-    try:
-        result = solver.normal(image_path)
-        return result['code']  # Retorna a solução do CAPTCHA
-    except Exception as e:
-        logging.info(f"Ocorreu um erro ao resolver o CAPTCHA: {e}")
-        return None
-
-
-def scrape_marketwatch_data(stock_symbol):
-    options = setup_options_browser()
-    driver = webdriver.Firefox(options=options)
-    time.sleep(2)
-
-    try:
-        driver.get(f"https://www.marketwatch.com/investing/stock/{stock_symbol}")
-        time.sleep(5)  # Esperar um pouco para garantir que a página carregue
-
-        if "ct.captcha-delivery" in driver.page_source:
-            logging.info("CAPTCHA detectado. Enviando para resolução.")
-            screenshot = driver.get_screenshot_as_png()
-            full_screenshot = Image.open(io.BytesIO(screenshot))
-
-            # Criar um arquivo temporário para a imagem
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
-                full_screenshot.save(temp_file, format='PNG')
-                temp_file_path = temp_file.name
-
-            # Resolver o CAPTCHA
-            captcha_solution = solve_captcha(temp_file_path)
-            if captcha_solution:
-                logging.info(f"Solução do CAPTCHA: {captcha_solution}")
-                iframe = WebDriverWait(driver, 20).until(
-                    EC.presence_of_element_located((By.TAG_NAME, "iframe"))
-                )
-
-                # Mudar o contexto para o iframe
-                driver.switch_to.frame(iframe)
-                # Encontrar o campo de entrada do CAPTCHA
-                captcha_input = driver.find_element(By.XPATH, "//input[@type='text' or @name='captcha']")
-                captcha_input.send_keys(captcha_solution)  # Inserir a solução do CAPTCHA
-
-                # Encontrar o botão de envio e clicar
-                submit_button = driver.find_element(By.XPATH, "//input[@type='submit' or @value='Submit']")
-                submit_button.click()
-
-                logging.info("Formulário de CAPTCHA enviado.")
-                time.sleep(5)  # Esperar a página carregar após o envio do CAPTCHA
-
-            else:
-                logging.info("Falha ao resolver o CAPTCHA.")
+        if self.proxy == "":
+            client = httpx.Client(headers=inconspicuous_user, cookies=self.cookies, follow_redirects=False)
         else:
-            logging.info("Nenhum CAPTCHA detectado.")
+            proxies = {
+                "http://": httpx.HTTPTransport(proxy=self.proxy),
+                "https://": httpx.HTTPTransport(proxy=self.proxy),
+            } if self.proxy != "" else {}
+            client = httpx.Client(headers=inconspicuous_user, cookies=self.cookies, follow_redirects=False, mounts=proxies)
+            # test proxy
+            try:
+                response = client.get("https://httpbin.org/ip")
+                response.raise_for_status()
+                print(f"Proxy {self.proxy} is working. Status code: {response.status_code}")
+                print("Response content:", response.json())
+            except httpx.HTTPError as e:
+                raise Exception(f"Failed to test proxy: {e}") from e
 
-        print(driver.page_source)  # Exibe o conteúdo da página
+        return client
 
-    except Exception as e:
-        logging.info(f"Ocorreu um erro: {e}")
-    finally:
-        driver.quit()
+    def parse_market_cap(self, market_cap_str):
+        # Parse a string like "$3.09T" or "₩403.65T" to return the currency and a float value
+        market_cap_str = market_cap_str.replace('$', '').replace('₩', '').replace('¥', '').strip()
+        
+        if market_cap_str[-1] == 'T':
+            value = float(market_cap_str[:-1]) * 1_000_000_000_000  # Trilhão
+            currency = '$'  # ou ajustar conforme necessário
+        elif market_cap_str[-1] == 'B':
+            value = float(market_cap_str[:-1]) * 1_000_000_000  # Bilhão
+            currency = '$'
+        elif market_cap_str[-1] == 'M':
+            value = float(market_cap_str[:-1]) * 1_000_000  # Milhão
+            currency = '$'
+        else:
+            value = float(market_cap_str)  # Valor normal
+            currency = '$'  # Ajustar conforme necessário
+        
+        return currency, value
 
+    def parse_competitors(self, soup):
+        competitors = []
+        competitor_header = soup.find('div', class_='element element--table overflow--table Competitors')
+        
+        # Encontra a tabela de concorrentes
+        if competitor_header:
+            table = competitor_header.find('table', class_='table table--primary align--right')
+            tbody = table.find('tbody', class_='table__body')
+            
+            # Itera sobre cada linha da tabela
+            for row in tbody.find_all('tr', class_='table__row'):
+                name_cell = row.find('td', class_='table__cell w50')
+                market_cap_cell = row.find('td', class_='table__cell w25 number')
+                currency, value = self.parse_market_cap(market_cap_cell.text.strip())
+
+                competitor = {
+                    'name': name_cell.text.strip(),
+                    'market_cap': {
+                        'currency': currency,
+                        'value': value
+                    }
+                }
+                competitors.append(competitor)
+        
+        return competitors
+
+    def parse_stock_values(self, soup):
+        key_data_header = soup.find('span', class_='label', text='Key Data')
+        if key_data_header:
+            key_data_list = key_data_header.find_parent('div', class_='element--list').find_all('li', class_='kv__item')
+            
+            key_data = {}
+            for item in key_data_list:
+                label = item.find('small', class_='label').text.strip()
+                value = item.find('span', class_='primary').text.strip()
+                if label == 'Open':
+                    open_value = value.replace('$', '').replace(',', '')
+                    key_data[label] = float(open_value)
+                elif label == 'Day Range':
+                    day_range = value.split(' - ')
+                    key_data['low'] = float(day_range[0])
+                    key_data['high'] = float(day_range[1])
+
+        close_table = soup.find('div', class_='intraday__close').find('table')
+        if close_table:
+            previous_close_value = close_table.find('td', class_='table__cell u-semi').text.strip()
+            close_value = previous_close_value.replace('$', '').replace(',', '')
+            key_data['close'] = float(close_value)
+
+        return key_data
+
+    def parse_performance_data(self, soup):
+        performance_table = soup.find("div", class_="element element--table performance")
+        rows = performance_table.find_all("tr", class_="table__row")
+        performance_data = {}
+        for row in rows:
+            period = row.find("td", class_="table__cell").text.strip()
+            value = row.find("li", class_="content__item value ignore-color").text.strip().replace('%', '')
+            
+            # Mapeia os períodos para as chaves desejadas
+            if "5 Day" in period:
+                performance_data['five_days'] = float(value)
+            elif "1 Month" in period:
+                performance_data['one_month'] = float(value)
+            elif "3 Month" in period:
+                performance_data['three_months'] = float(value)
+            elif "YTD" in period:
+                performance_data['year_to_date'] = float(value)
+            elif "1 Year" in period:
+                performance_data['one_year'] = float(value)
+
+        return performance_data
+
+    def scrape_marketwatch_data(self, stock):
+        url = f"https://www.marketwatch.com/investing/stock/{stock}"
+        response = self.session.get(url, follow_redirects=True)
+        response.raise_for_status()  # Will raise HTTPError for 4XX/5XX status
+        soup = BeautifulSoup(response.text, "html.parser")
+
+        performance = self.parse_performance_data(soup)
+        stock_values = self.parse_stock_values(soup)
+        competitors = self.parse_competitors(soup)
+        company_name = soup.find("h1", class_="company__name").text
+
+        stock_info = {
+            'company_name': company_name,
+            'performance_data': performance,
+            'competitors': competitors,
+            'stock_values': stock_values,
+            'company_code': stock
+        }
+        return stock_info
+
+    def map_marketwatch_data_to_stock_create(self, marketwatch_data):
+        stock_values = StockValues(
+            open=marketwatch_data['stock_values']['Open'],
+            high=marketwatch_data['stock_values']['high'],
+            low=marketwatch_data['stock_values']['low'],
+            close=marketwatch_data['stock_values']['close']
+        )
+
+        performance_data = PerformanceData(
+            five_days=marketwatch_data['performance_data']['five_days'],
+            one_month=marketwatch_data['performance_data']['one_month'],
+            three_months=marketwatch_data['performance_data']['three_months'],
+            year_to_date=marketwatch_data['performance_data']['year_to_date'],
+            one_year=marketwatch_data['performance_data']['one_year'],
+        )
+
+        competitors = [
+            Competitor(
+                name=comp['name'],
+                market_cap=comp['market_cap']
+            )
+            for comp in marketwatch_data['competitors']
+        ]
+
+        return StockCreate(
+            company_code=marketwatch_data['company_code'],
+            company_name=marketwatch_data['company_name'],
+            stock_values=stock_values,
+            performance_data=performance_data,
+            competitors=competitors
+        )

@@ -9,17 +9,15 @@ async def get_stock_by_symbol(db: AsyncSession, symbol: str):
 
 async def create_stock(db: AsyncSession, stock: StockCreate):
     db_stock = Stock(**stock.model_dump())
-    async with db() as session:
-        session.add(db_stock)
-        await session.commit()
-        await session.refresh(db_stock)
+    db.add(db_stock)
+    await db.commit()
+    await db.refresh(db_stock)
     return db_stock
 
 async def update_stock_amount(db: AsyncSession, symbol: str, amount: int):
     stock = await get_stock_by_symbol(db, symbol)
     if stock:
         stock.purchased_amount += amount
-        async with db() as session:
-            await session.commit()
-            await session.refresh(stock)
+        await db.commit()
+        await db.refresh(stock)
     return stock
