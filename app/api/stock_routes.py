@@ -1,20 +1,24 @@
+# app/api/stock_routes.py
 from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.database import get_db
 from app.models.stock_model import Stock
-from app.schemas.stock_schema import StockResponse, StockCreate, StockUpdate
-from app.services.stock_service import create_stock, get_stock_by_symbol, update_stock_amount
+from app.schemas.stock_schema import StockResponse
+from app.services.stock_service import get_stock_by_symbol
+from app.services.scraper_service import scrape_marketwatch_data
+import os
 
 router = APIRouter()
 
-@router.get("/stock/{stock_symbol}", response_model=StockResponse)
-def get_stock(stock_symbol: str, db: Session = Depends(get_db)):
-    stock = get_stock_by_symbol(db, stock_symbol)
+@router.get("/stock/{stock_symbol}")
+async def read_stock(stock_symbol: str, db: AsyncSession = Depends(get_db)):
+    stock = await get_stock_by_symbol(db, stock_symbol)
     if not stock:
-        raise HTTPException(status_code=404, detail="Stock not found")
+        marketwatch_data = scrape_marketwatch_data(stock_symbol)
+        
+        if not marketwatch_data:
+            raise HTTPException(status_code=404, detail="Stock not found")
+        
+        stock = StockResponse(**marketwatch_data)
+        
     return stock
-
-@router.post("/stock/{stock_symbol}")
-def update_stock(stock_symbol: str, stock_update: StockUpdate, db: Session = Depends(get_db)):
-    stock = update_stock_amount(db, stock_symbol, stock_update.purchased_amount)
-    return {"message": f"{stock_update.purchased_amount} units of stock {stock_symbol} were added to your stock record"}
