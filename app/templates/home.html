@@ -1,12 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
+    <style>
+        body {
+            background-color: #f8f9fa; /* Light background color */
+        }
+        .container {
+            height: 100vh; /* Full viewport height */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        h1 {
+            color: #007bff; /* Bootstrap primary color */
+            margin-bottom: 20px;
+        }
+        .button {
+            margin: 5px; /* Add some space between buttons */
+        }
+        .footer {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            color: #6c757d; /* Bootstrap secondary color */
+        }
+    </style>
+    <script>
+        window.onload = function() {
+            {% if error %}
+                alert("{{ error }}");
+            {% endif %}
+        }
+    </script>
 </head>
 <body>
-    <h1>{{ title }}</h1>
-    <p>Welcome to the FastAPI CRUD App!</p>
+    <div class="container text-center">
+        <div>
+            <h1 class="display-4">{{ title }}</h1>
+            <p class="lead">Welcome to the Stock Trading Simulator</p>
+            <div>
+                <button class="btn btn-primary btn-lg" onclick="window.location.href='/register'">Register</button>
+                <button class="btn btn-outline-secondary btn-lg" onclick="window.location.href='/login'">Login</button>
+            </div>
+        </div>
+        <footer class="footer">
+            <h7> :) Hope you like it!</h7>
+        </footer>
+    </div>
 </body>
 </html>
