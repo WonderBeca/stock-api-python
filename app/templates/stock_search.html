@@ -1,30 +1,214 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>Consulta de Ações</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        h3, h2 {
+            color: #343a40;
+        }
+
+        .card {
+            margin-bottom: 20px;
+        }
+
+        .table th, .table td {
+            vertical-align: middle;
+        }
+        /* Custom styles for help text */
+        .help-text {
+            display: none; /* Initially hidden */
+            font-size: 0.8em; /* Smaller font size */
+            color: rgb(112, 41, 28); /* Yellow color */
+        }
+
+        /* Show help text when input is focused */
+        input:focus + .help-text {
+            display: block; /* Show when focused */
+        }
+    </style>
 </head>
+
 <body>
-    <h1>Consulta de Ações</h1>
-    <form action="/stock" method="post">
-        <label for="stock_symbol">Digite o símbolo da ação:</label>
-        <input type="text" id="stock_symbol" name="stock_symbol" required>
-        <button type="submit">Consultar</button>
-    </form>
-    {% if stock %}
-        <h2>Resultados para: {{ stock.company_name }}</h2>
-        <p>Preço de abertura: {{ stock.stock_values.open }}</p>
-        <p>Preço máximo: {{ stock.stock_values.high }}</p>
-        <p>Preço mínimo: {{ stock.stock_values.low }}</p>
-        <p>Preço de fechamento: {{ stock.stock_values.close }}</p>
-        <h3>Concorrentes:</h3>
-        <ul>
-            {% for competitor in stock.competitors %}
-                <li>{{ competitor.name }} - Capitalização de Mercado: {{ competitor.market_cap.currency }}{{ competitor.market_cap.value }}</li>
-            {% endfor %}
-        </ul>
-    {% elif error %}
-        <p>{{ error }}</p>
+    {% if request.cookies.get('success_message') %}
+    <div id="success_message">{{ request.cookies.get('success_message') }}</div>
     {% endif %}
+    {% if request.cookies.get('error_message') %}
+        <div id="error_message">{{ request.cookies.get('error_message') }}</div>
+    {% endif %}
+    {% if request.cookies.get('warning_message') %}
+        <div id="warning_message">{{ request.cookies.get('warning_message') }}</div>
+    {% endif %}
+
+    {% if request.cookies.warning_message %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        {{ request.cookies.warning_message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    {% endif %}
+    <div class="container">
+        <hr>
+        {% if wallet %}
+        <div class="card">
+            <div class="card-body">
+                <h3>Wallet</h3>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Stock</th>
+                            <th>Amount</th>
+                            <th class="text-center">Edit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stock in wallet %}
+                            <tr>
+                                <td>{{ stock.stock_symbol }}</td>
+                                <td>{{ stock.total_amount }}</td>
+                                <td class="text-center" style="vertical-align: middle;">
+                                    <form action="/stock/{{ stock.stock_symbol }}/update" method="post" class="d-flex justify-content-center">
+                                        <input type="hidden" name="current_amount" value="{{ stock.total_amount }}">
+                                        <input type="hidden" name="stock_symbol" value="{{ stock.stock_symbol }}">
+                                        <input type="number" id="amount" name="amount" class="form-control mr-2 text-center" min="1" step="1" required style="max-width: 80px;">
+                                        <button type="submit" class="btn btn-primary btn-sm">Update</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card">
+            <div class="card-body">
+                <h3>Stock Information</h3>
+                <form action="/stock" method="get">
+                    <div class="form-group">
+                        <label for="stock_symbol">Enter stock symbol</label>
+                        <input type="text" id="stock_symbol" name="stock_symbol" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Optional Date:</label>
+                        <input type="date" id="date" name="date" class="form-control">
+                        <small class="help-text">This will show the stock information on a given date, not valid on current transactions.</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Send</button>
+                </form>
+            </div>
+        </div>
+        
+        
+
+        {% if stock %}
+            <div class="card">
+                <div class="card-body">
+                    <h2>Results for: {{ stock.company_name }}</h2>
+                    <p><strong>Opening Price:</strong> {{ stock.stock_values.open }}</p>
+                    <p><strong>Highest Price:</strong> {{ stock.stock_values.high }}</p>
+                    <p><strong>Lowest Price:</strong> {{ stock.stock_values.low }}</p>
+                    <p><strong>Closing Price:</strong> {{ stock.stock_values.close }}</p>
+                    <h3>Competitors:</h3>
+                    <ul class="list-unstyled">
+                        {% for competitor in stock.competitors %}
+                            <li>{{ competitor.name }} - Market Capitalization: {{ competitor.market_cap.currency }}{{ competitor.market_cap.value }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        {% elif error %}
+            <div class="alert alert-danger" role="alert">{{ error }}</div>
+        {% endif %}
+
+        <div class="card">
+            <div class="card-body">
+                <h3>Stock Purchase</h3>
+                <form action="/stock" method="post">
+                    <div class="form-group">
+                        <label for="purchase_stock_symbol">Stock</label>
+                        <input type="text" id="purchase_stock_symbol" name="stock_symbol" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Amount</label>
+                        <input type="number" id="amount" name="amount" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-block">Enviar</button>
+                </form>
+            </div>
+        </div>
+
+        {% if purchased_stocks %}
+        <div class="card">
+            <div class="card-body">
+                <h3>Transaction history</h3>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Stock</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for purchase in purchased_stocks %}
+                            <tr>
+                                <td>{{ purchase.stock_symbol }}</td>
+                                <td>{{ purchase.amount_stock }}</td>
+                                <td>{{ purchase.purchase_date }}</td>
+                                <td>{{ purchase.status }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
+
 </html>
+<script>
+    // Função para remover um cookie
+    function removeCookie(cookieName) {
+        document.cookie = cookieName + "=; Max-Age=0; path=/;";
+    }
+
+    function removeMessages() {
+        const successMessage = document.getElementById('success_message');
+        const errorMessage = document.getElementById('error_message');
+        const warningMessage = document.getElementById('warning_message');
+
+        // Remove o cookie e a mensagem do DOM
+        if (successMessage) {
+            successMessage.remove();
+            removeCookie('success_message');
+        }
+        if (errorMessage) {
+            errorMessage.remove();
+            removeCookie('error_message');
+        }
+        if (warningMessage) {
+            warningMessage.remove();
+            removeCookie('warning_message');
+        }
+    }
+
+    window.onload = function() {
+        removeMessages();
+    };
+</script>

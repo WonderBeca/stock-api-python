@@ -1,5 +1,16 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from pydantic import BaseModel, Field
+
+class StockPurchaseRequest(BaseModel):
+    amount: float = Field(..., gt=0, description="The amount of stock to purchase, must be greater than 0")
+
+class StockUpdateRequest(BaseModel):
+    amount: float = Field(..., gt=0, description="The new amount of stock, must be greater than 0")
+    current_amount: float = Field(..., gt=0, description="The current amount of stock, must be greater than 0")
+
+class StockQueryRequest(BaseModel):
+    date: str = Field(None, description="The date for stock data, optional")
 
 class StockValues(BaseModel):
     open: float
