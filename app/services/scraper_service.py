@@ -2,7 +2,8 @@ import httpx
 from bs4 import BeautifulSoup
 from app.schemas.stock_schema import StockCreate, StockValues, PerformanceData, Competitor
 from fastapi import HTTPException
-from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR, HTTP_200_OK
+import re
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_200_OK
 import os
 
 class MarketWacth():
@@ -105,6 +106,7 @@ class MarketWacth():
                 label = item.find('small', class_='label').text.strip()
                 value = item.find('span', class_='primary').text.strip()
                 if label == 'Open':
+                    value = re.sub(r'[^\d.]', '', value)
                     open_value = value.replace('$', '').replace(',', '')
                     key_data['open'] = float(open_value)
                 elif label == 'Day Range':
@@ -116,6 +118,7 @@ class MarketWacth():
         if close_table:
             previous_close_value = close_table.find('td', class_='table__cell u-semi').text.strip()
             close_value = previous_close_value.replace('$', '').replace(',', '')
+            close_value = re.sub(r'[^\d.]', '', close_value)
             key_data['close'] = float(close_value)
 
         return key_data

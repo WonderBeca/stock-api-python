@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import func, case
-from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
