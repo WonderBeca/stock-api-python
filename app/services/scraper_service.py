@@ -220,8 +220,8 @@ class MarketWacth():
         key_data_header = soup.find('span', class_='label', text='Key Data')
         if key_data_header:
             key_data_list = key_data_header.find_parent(
-                'div', class_='element--list').find_all('li', class_='kv__item')
-
+                'div', class_='element--list')
+            key_data_list = key_data_list.find_all('li', class_='kv__item') if key_data_list else []
             key_data = {}
             for item in key_data_list:
                 label = item.find('small', class_='label').text.strip()
@@ -278,7 +278,7 @@ class MarketWacth():
             be updated accordingly.
         """
         performance_table = soup.find("div", class_="element element--table performance")
-        rows = performance_table.find_all("tr", class_="table__row")
+        rows = performance_table.find_all("tr", class_="table__row") if performance_table else []
         performance_data = {}
         for row in rows:
             period = row.find("td", class_="table__cell").text.strip()
