@@ -221,10 +221,14 @@ The Stock API provides endpoints for user registration, authentication, and stoc
 
 ---
 
-### Contributing
+### Screens
+![image](https://github.com/user-attachments/assets/e86b9224-2aff-4e57-9bb5-a2f698e375d9)
+![image](https://github.com/user-attachments/assets/25065419-a077-404b-b1f2-c4d4e2a777a2)
+![image](https://github.com/user-attachments/assets/cc55af6d-ad03-4bef-aeec-b8e81e4d36d3)
+![image](https://github.com/user-attachments/assets/6e56e34e-bc98-4c98-b9ff-9cc2c3c1ea63)
+![image](https://github.com/user-attachments/assets/6c05ab5e-9fe1-46b3-8564-660ad5a16ac1)
+![image](https://github.com/user-attachments/assets/aacabd92-c662-4ad6-bac0-8bc03a761ccf)
 
-Feel free to contribute to the project by submitting a pull request or opening an issue for any enhancements or bugs.
+### OBS
+My plan for the Stock Information section was to retrieve historical stock data by making a request to Polygon based on the specified date. Unfortunately, I didn't have enough time to implement this feature. I also wanted to ensure more comprehensive test coverage, but I miscalculated my available time!
 
-### License
-
-This project is licensed under the MIT License.
