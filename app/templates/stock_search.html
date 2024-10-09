@@ -75,7 +75,7 @@
                                 <td>{{ stock.stock_symbol }}</td>
                                 <td>{{ stock.total_amount }}</td>
                                 <td class="text-center" style="vertical-align: middle;">
-                                    <form action="/stock/{{ stock.stock_symbol }}" method="post" class="d-flex justify-content-center">
+                                    <form action="/stock/{{ stock.stock_symbol }}/update" method="post" class="d-flex justify-content-center">
                                         <input type="hidden" name="current_amount" value="{{ stock.total_amount }}">
                                         <input type="hidden" name="stock_symbol" value="{{ stock.stock_symbol }}">
                                         <input type="number" id="amount" name="amount" class="form-control mr-2 text-center" min="1" step="1" required style="max-width: 80px;">
@@ -108,6 +108,7 @@
             </div>
         </div>
         
+        
 
         {% if stock %}
             <div class="card">
@@ -129,11 +130,10 @@
             <div class="alert alert-danger" role="alert">{{ error }}</div>
         {% endif %}
 
-
         <div class="card">
             <div class="card-body">
                 <h3>Stock Purchase</h3>
-                <form action="/stock/purchase" method="post">
+                <form action="/stock" method="post">
                     <div class="form-group">
                         <label for="purchase_stock_symbol">Stock</label>
                         <input type="text" id="purchase_stock_symbol" name="stock_symbol" class="form-control" required>

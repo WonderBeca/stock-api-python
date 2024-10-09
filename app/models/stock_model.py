@@ -1,13 +1,10 @@
-from sqlalchemy import Column, String, Integer, Float, Date, JSON, UUID
+from sqlalchemy import Column, String, Integer, Date, JSON, UUID, DateTime, ForeignKey
+from sqlalchemy.orm import relationship
 import uuid
 from app.database.database import Base
+from datetime import datetime
 
-class Competitor(Base):
-    __tablename__ = 'competitors'
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False)
-    market_cap = Column(JSON) 
+
 class Stock(Base):
     __tablename__ = 'stocks'
     
@@ -18,3 +15,17 @@ class Stock(Base):
     stock_values = Column(JSON)
     performance_data = Column(JSON)
     competitors = Column(JSON)
+    timestamp = Column(DateTime, default=datetime.now)
+    purchases = relationship("StockPurchase", back_populates="stock")
+
+class StockPurchase(Base):
+    __tablename__ = 'stock_purchases'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey('users.id'), nullable=False)
+    stock_id = Column(UUID(as_uuid=True), ForeignKey('stocks.id'), nullable=False)
+    amount_stock = Column(Integer, nullable=False)
+    purchase_date = Column(DateTime, default=datetime.now)
+    stock_symbol = Column(String)
+    status = Column(String, default='BUY')
+    stock = relationship("Stock", back_populates="purchases")

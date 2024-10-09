@@ -1,6 +1,8 @@
 import httpx
 from bs4 import BeautifulSoup
 from app.schemas.stock_schema import StockCreate, StockValues, PerformanceData, Competitor
+from fastapi import HTTPException
+from starlette.status import HTTP_404_NOT_FOUND, HTTP_500_INTERNAL_SERVER_ERROR, HTTP_200_OK
 import os
 
 class MarketWacth():
@@ -104,9 +106,9 @@ class MarketWacth():
                 value = item.find('span', class_='primary').text.strip()
                 if label == 'Open':
                     open_value = value.replace('$', '').replace(',', '')
-                    key_data[label] = float(open_value)
+                    key_data['open'] = float(open_value)
                 elif label == 'Day Range':
-                    day_range = value.split(' - ')
+                    day_range = value.replace(',', '').split(' - ')
                     key_data['low'] = float(day_range[0])
                     key_data['high'] = float(day_range[1])
 
@@ -141,24 +143,48 @@ class MarketWacth():
         return performance_data
 
     def scrape_marketwatch_data(self, stock):
+        """
+        Scrape stock data from MarketWatch for a given stock.
+
+        Args:
+            stock (str): The stock code to scrape data for.
+
+        Raises:
+            HTTPException: If stock data cannot be retrieved or stock is not found.
+        
+        Returns:
+            dict: A dictionary containing stock information.
+        """
         url = f"https://www.marketwatch.com/investing/stock/{stock}"
         response = self.session.get(url, follow_redirects=True)
-        response.raise_for_status()  # Will raise HTTPError for 4XX/5XX status
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to retrieve stock data. Status code: {response.status_code}")
+
         soup = BeautifulSoup(response.text, "html.parser")
+        company_name = soup.find("h1", class_="company__name")
+
+        if not company_name:
+            return None
 
         performance = self.parse_performance_data(soup)
         stock_values = self.parse_stock_values(soup)
         competitors = self.parse_competitors(soup)
-        company_name = soup.find("h1", class_="company__name").text
 
         stock_info = {
-            'company_name': company_name,
-            'performance_data': performance,
-            'competitors': competitors,
-            'stock_values': stock_values,
-            'company_code': stock
+            'status': HTTP_200_OK,
+            'message': 'Stock data retrieved successfully',
+            'data': {
+                'company_name': company_name.text.strip(),
+                'performance_data': performance,
+                'competitors': competitors,
+                'stock_values': stock_values,
+                'company_code': stock
+            }
         }
         return stock_info
+
+
 
     def map_marketwatch_data_to_stock_create(self, marketwatch_data):
         stock_values = StockValues(
@@ -191,3 +217,4 @@ class MarketWacth():
             performance_data=performance_data,
             competitors=competitors
         )
+    
