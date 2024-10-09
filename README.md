@@ -54,3 +54,177 @@ Make sure you have Docker and Docker Compose installed on your machine. You can 
    ```
    docker-compose up --build
    ```
+
+   After that you application will run on http://localhost:8000/
+
+# Stock API
+
+### Overview
+
+The Stock API provides endpoints for user registration, authentication, and stock management. It allows users to register, log in, view their stock purchases, and manage their stocks. I made a whole front end but since the test specifies some endpoints requirements i addapted so the endpoints work either on front  and backend directly.
+
+### Endpoints
+
+#### Home
+
+- **GET /**
+  Render the home page.
+
+  **Responses:**
+
+  - `200`: Successful response.
+  - `204`: No content.
+
+---
+
+#### User Registration
+
+- **GET /register**Render the registration form.
+
+  **Responses:**
+
+  - `200`: Successful response with registration form.
+- **POST /register**
+  Register a new user.
+
+  **Request Body:**
+
+  - **Form Data:**
+    - `username`: string
+    - `password`: string
+  - **JSON:**
+    ```json
+    {
+      "username": "string",
+      "password": "string"
+    }
+    ```
+
+  **Responses:**
+
+  - `201`: User registered successfully.
+  - `400`: Username already registered.
+
+---
+
+#### User Login
+
+- **GET /login**Render the login form.
+
+  **Responses:**
+
+  - `200`: Successful response with login form.
+- **POST /login**
+  Authenticate a user and log them in.
+
+  **Request Body:**
+
+  - **Form Data:**
+    - `username`: string
+    - `password`: string
+  - **JSON:**
+    ```json
+    {
+      "username": "string",
+      "password": "string"
+    }
+    ```
+
+  **Responses:**
+
+  - `200`: Successful login.
+  - `400`: Invalid username or password.
+
+---
+
+#### User Dashboard
+
+- **GET /welcome**
+  Render the user's stock purchase history and wallet information.
+
+  **Responses:**
+
+  - `200`: Successful response with user's stock information.
+
+---
+
+#### Stock Management
+
+- **GET /stocks**Get all stocks.
+
+  **Responses:**
+
+  - `200`: Successful retrieval of all stocks.
+  - `204`: No stocks found.
+- **GET /stocks/{user_id}**Get stocks by user ID.
+
+  **Parameters:**
+
+  - `user_id`: integer (required) - The ID of the user to retrieve stocks for.
+
+  **Responses:**
+
+  - `200`: Successful retrieval of stocks for user.
+  - `404`: User not found.
+- **GET /stock/{stock_symbol}**Retrieve stock information by symbol.
+
+  **Parameters:**
+
+  - `stock_symbol`: string (required) - The stock symbol to query.
+  - `date`: string (optional) - The date for stock data.
+
+  **Responses:**
+
+  - `200`: Successful retrieval of stock information.
+  - `400`: Stock not found.
+  - `302`: Redirect to welcome page with error message.
+- **POST /stock/{stock_symbol}**Buy stock.
+
+  **Parameters:**
+
+  - `stock_symbol`: string (required) - The stock symbol to purchase.
+
+  **Request Body:**
+
+  - **Form Data:**
+    - `amount`: integer
+    - `stock_symbol`: string
+  - **JSON:**
+    ```json
+    {
+      "amount": integer
+    }
+    ```
+
+  **Responses:**
+
+  - `200`: Stock purchase successful.
+  - `400`: Amount not provided or stock not found.
+  - `302`: Redirect to welcome page with error message.
+- **POST /stock/{stock_symbol}/update**
+  Update stock amount.
+
+  **Parameters:**
+
+  - `stock_symbol`: string (required) - The stock symbol to update.
+
+  **Request Body:**
+
+  - **Form Data:**
+    - `amount`: integer
+    - `current_amount`: integer
+
+  **Responses:**
+
+  - `200`: Stock updated successfully.
+  - `302`: Redirect to welcome page with error message.
+
+---
+
+### Contributing
+
+Feel free to contribute to the project by submitting a pull request or opening an issue for any enhancements or bugs.
+
+### License
+
+This project is licensed under the MIT License.
