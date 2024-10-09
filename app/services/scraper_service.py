@@ -6,6 +6,7 @@ import re
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_200_OK
 import os
 
+
 class MarketWacth():
     def __init__(self, proxy: str = "", skip_login: bool = False):
         """
@@ -39,7 +40,8 @@ class MarketWacth():
                 "http://": httpx.HTTPTransport(proxy=self.proxy),
                 "https://": httpx.HTTPTransport(proxy=self.proxy),
             } if self.proxy != "" else {}
-            client = httpx.Client(headers=inconspicuous_user, cookies=self.cookies, follow_redirects=False, mounts=proxies)
+            client = httpx.Client(
+                headers=inconspicuous_user, cookies=self.cookies, follow_redirects=False, mounts=proxies)
             # test proxy
             try:
                 response = client.get("https://httpbin.org/ip")
@@ -54,37 +56,34 @@ class MarketWacth():
     def parse_market_cap(self, market_cap_str):
         # Parse a string like "$3.09T" or "₩403.65T" to return the currency and a float value
         market_cap_str = market_cap_str.replace('$', '').replace('₩', '').replace('¥', '').strip()
-        
+
         if market_cap_str[-1] == 'T':
-            value = float(market_cap_str[:-1]) * 1_000_000_000_000  # Trilhão
-            currency = '$'  # ou ajustar conforme necessário
+            value = float(market_cap_str[:-1]) * 1_000_000_000_000
+            currency = '$'
         elif market_cap_str[-1] == 'B':
-            value = float(market_cap_str[:-1]) * 1_000_000_000  # Bilhão
+            value = float(market_cap_str[:-1]) * 1_000_000_000
             currency = '$'
         elif market_cap_str[-1] == 'M':
-            value = float(market_cap_str[:-1]) * 1_000_000  # Milhão
+            value = float(market_cap_str[:-1]) * 1_000_000
             currency = '$'
         else:
             value = float(market_cap_str)  # Valor normal
-            currency = '$'  # Ajustar conforme necessário
-        
+            currency = '$'
+
         return currency, value
 
     def parse_competitors(self, soup):
         competitors = []
         competitor_header = soup.find('div', class_='element element--table overflow--table Competitors')
-        
-        # Encontra a tabela de concorrentes
+
         if competitor_header:
             table = competitor_header.find('table', class_='table table--primary align--right')
             tbody = table.find('tbody', class_='table__body')
-            
-            # Itera sobre cada linha da tabela
+
             for row in tbody.find_all('tr', class_='table__row'):
                 name_cell = row.find('td', class_='table__cell w50')
                 market_cap_cell = row.find('td', class_='table__cell w25 number')
                 currency, value = self.parse_market_cap(market_cap_cell.text.strip())
-
                 competitor = {
                     'name': name_cell.text.strip(),
                     'market_cap': {
@@ -93,14 +92,15 @@ class MarketWacth():
                     }
                 }
                 competitors.append(competitor)
-        
+
         return competitors
 
     def parse_stock_values(self, soup):
         key_data_header = soup.find('span', class_='label', text='Key Data')
         if key_data_header:
-            key_data_list = key_data_header.find_parent('div', class_='element--list').find_all('li', class_='kv__item')
-            
+            key_data_list = key_data_header.find_parent(
+                'div', class_='element--list').find_all('li', class_='kv__item')
+
             key_data = {}
             for item in key_data_list:
                 label = item.find('small', class_='label').text.strip()
@@ -130,8 +130,7 @@ class MarketWacth():
         for row in rows:
             period = row.find("td", class_="table__cell").text.strip()
             value = row.find("li", class_="content__item value ignore-color").text.strip().replace('%', '')
-            
-            # Mapeia os períodos para as chaves desejadas
+
             if "5 Day" in period:
                 performance_data['five_days'] = float(value)
             elif "1 Month" in period:
@@ -154,15 +153,17 @@ class MarketWacth():
 
         Raises:
             HTTPException: If stock data cannot be retrieved or stock is not found.
-        
+
         Returns:
             dict: A dictionary containing stock information.
         """
         url = f"https://www.marketwatch.com/investing/stock/{stock}"
         response = self.session.get(url, follow_redirects=True)
-        
+
         if response.status_code != 200:
-            raise HTTPException(status_code=HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to retrieve stock data. Status code: {response.status_code}")
+            raise HTTPException(
+                status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to retrieve stock data. Status code: {response.status_code}")
 
         soup = BeautifulSoup(response.text, "html.parser")
         company_name = soup.find("h1", class_="company__name")
@@ -186,8 +187,6 @@ class MarketWacth():
             }
         }
         return stock_info
-
-
 
     def map_marketwatch_data_to_stock_create(self, marketwatch_data):
         stock_values = StockValues(
@@ -220,4 +219,3 @@ class MarketWacth():
             performance_data=performance_data,
             competitors=competitors
         )
-    
