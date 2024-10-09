@@ -1,11 +1,13 @@
-import httpx
-import logging
-from bs4 import BeautifulSoup
-from app.schemas.stock_schema import StockCreate, StockValues, PerformanceData, Competitor
-from fastapi import HTTPException
-import re
-from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_200_OK
 import os
+import re
+import logging
+
+import httpx
+from bs4 import BeautifulSoup
+from fastapi import HTTPException
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR, HTTP_200_OK
+
+from app.schemas.stock_schema import StockCreate, StockValues, PerformanceData, Competitor
 
 
 class MarketWacth():
