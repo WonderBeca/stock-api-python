@@ -1,12 +1,11 @@
-import logging
-from fastapi import APIRouter, HTTPException, Depends, Request, Form, Body, Query
+from fastapi import APIRouter, Depends, Request, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.utils.auth_utils import requires_authentication
-from starlette.status import HTTP_302_FOUND, HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_203_NON_AUTHORITATIVE_INFORMATION
+from starlette.status import (
+    HTTP_302_FOUND, HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_203_NON_AUTHORITATIVE_INFORMATION)
 from app.database.database import get_db
-from app.schemas.stock_schema import StockPurchaseRequest, StockUpdateRequest, StockQueryRequest
 from app.services.stock_service import (
     get_stock_by_symbol, create_stock, purchase_stock, update_stock_amount,
     get_stocks_history_by_user, get_stocks_total_by_user, stock_dict, get_marketwatch_data
@@ -15,32 +14,43 @@ from app.services.stock_service import (
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
+
 async def redirect_with_message(url: str, message: str, status_code=HTTP_302_FOUND) -> RedirectResponse:
     """
     Redirects to a specified URL with a message set in a cookie.
 
+    This function creates a redirect response to a given URL and sets a cookie containing
+    a warning message to inform the user about the reason for the redirection.
+
     Args:
         url (str): The URL to redirect to.
-        message (str): The message to be set in a cookie.
-        status_code (int): The HTTP status code for the redirect.
+        message (str): The message to be stored in a cookie for user notification.
+        status_code (int, optional): The HTTP status code for the redirect. Defaults to 302 (Found).
 
     Returns:
-        RedirectResponse: The redirect response.
+        RedirectResponse: The redirect response object that includes the URL and the cookie.
     """
     redirect = RedirectResponse(url=url, status_code=status_code)
     redirect.set_cookie(key="warning_message", value=message)
     return redirect
 
+
 async def check_stock_exists(stock_symbol: str, db: AsyncSession):
     """
     Checks if a stock exists in the database by its symbol.
 
+    This function queries the database for a stock using the provided symbol.
+    If the stock does not exist, it returns a message prompting the user
+    to check the current stock price before proceeding with any buy/sell actions.
+
     Args:
         stock_symbol (str): The stock symbol to check.
-        db (AsyncSession): The database session for async operations.
+        db (AsyncSession): The database session for asynchronous operations.
 
     Returns:
-        tuple: A tuple containing the stock if it exists, or None, and an error message if it does not.
+        tuple: A tuple containing:
+            - stock: The stock object if it exists, or None if it does not.
+            - error_message: An error message string if the stock does not exist, or None if it does.
     """
     stock = await get_stock_by_symbol(db, stock_symbol)
     if not stock:
@@ -51,15 +61,21 @@ async def check_stock_exists(stock_symbol: str, db: AsyncSession):
         return None, msg
     return stock, None
 
+
 async def get_amount_from_request(request: Request):
     """
     Extracts the amount from the request based on its content type.
+
+    This function checks the content type of the request and extracts
+    the amount from the body accordingly. It supports both JSON and
+    form data formats.
 
     Args:
         request (Request): The FastAPI request object.
 
     Returns:
-        float or None: The extracted amount or None if not found.
+        float or None: The extracted amount as a float if found, or None
+        if the amount is not present in the request.
     """
     if request.headers.get("content-type") == "application/json":
         body = await request.json()
@@ -77,42 +93,47 @@ async def query_stock(
         date: str = Query(None),
         db: AsyncSession = Depends(get_db),
         user_id: int = Depends(requires_authentication),
-    ) -> HTMLResponse:
+) -> HTMLResponse:
     """
-    Retrieves stock information by its symbol. If the stock is not found in the database, 
+    Retrieves stock information by its symbol. If the stock is not found in the database,
     it attempts to fetch data from MarketWatch and create a new stock entry.
-    
+
     Args:
         request (Request): The FastAPI request object.
-        stock_symbol (str): The stock symbol to query.
-        date (str): The date for stock data, optional.
+        stock_symbol (str, optional): The stock symbol to query.
+            If not provided, it is extracted from query parameters.
+        date (str, optional): The date for stock data. Defaults to None.
         db (AsyncSession): The database session for async operations.
         user_id (int): The ID of the authenticated user.
 
     Returns:
-        HTMLResponse: The rendered HTML template with stock data.
+        HTMLResponse: The rendered HTML template with stock data if found,
+        or a redirect to the welcome page with an error message if the stock is not found.
+
+    Raises:
+        HTTPException: If the stock data cannot be retrieved or created,
+        an appropriate HTTP response is returned based on the content type of the request.
     """
     if stock_symbol is None:
         stock_symbol = request.query_params.get("stock_symbol")
 
     stock = await get_stock_by_symbol(db, stock_symbol)
-    
+
     if not stock:
         marketwatch_data = await get_marketwatch_data(stock_symbol, date)
         if not marketwatch_data:
             msg = "Stock not found"
             if request.headers.get("content-type") == "application/json":
                 return JSONResponse({"message": msg}, status_code=HTTP_400_BAD_REQUEST)
-            redirect = await redirect_with_message("/welcome", msg, status_code=HTTP_302_FOUND)
-            return  redirect
+            return await redirect_with_message("/welcome", msg, status_code=HTTP_302_FOUND)
         stock = await create_stock(db, marketwatch_data.get('data'))
 
     if request.headers.get("content-type") == "application/json":
         return JSONResponse(stock_dict(stock), status_code=HTTP_200_OK)
-    
+
     wallet = await get_stocks_total_by_user(db, user_id)
     purchased_stocks = await get_stocks_history_by_user(db, user_id)
-    
+
     return templates.TemplateResponse("stock_search.html", {
         "request": request,
         "stock": stock_dict(stock),
@@ -146,16 +167,14 @@ async def update_stock(
     try:
         stock, msg = await check_stock_exists(stock_symbol, db)
         if not stock:
-            response = await redirect_with_message("/welcome", msg, status_code=HTTP_302_FOUND)
-            return response
-        
+            return await redirect_with_message("/welcome", msg, status_code=HTTP_302_FOUND)
+
         await update_stock_amount(db, user_id, stock_symbol, amount, current_amount)
-        response = await redirect_with_message("/welcome", "Stock updated successfully!", status_code=HTTP_302_FOUND)
-        return response
+        return await redirect_with_message("/welcome", "Stock updated successfully!", status_code=HTTP_302_FOUND)
 
     except Exception as err:
-        response = await redirect_with_message("/welcome", str(err), status_code=HTTP_302_FOUND)
-        return response
+        return await redirect_with_message("/welcome", str(err), status_code=HTTP_302_FOUND)
+
 
 @router.post("/stock/{stock_symbol}", response_class=HTMLResponse)
 @router.post("/stock", response_class=HTMLResponse)
@@ -184,17 +203,17 @@ async def buy_stock(
         form_data = await request.form()
         stock_symbol = form_data.get("stock_symbol")
         amount = form_data.get("amount")
-    stock, msg = await check_stock_exists(stock_symbol, db)
-    
+
     if request.headers.get("content-type") == "application/json":
         body = await request.json()
         amount = body.get('amount')
 
+    stock, msg = await check_stock_exists(stock_symbol, db)
+
     if not stock:
         if request.headers.get("content-type") == "application/json":
             return JSONResponse({"message": msg}, status_code=HTTP_400_BAD_REQUEST)
-        response = redirect_with_message("/welcome", msg, status_code=HTTP_302_FOUND)
-        return response
+        return await redirect_with_message("/welcome", msg, status_code=HTTP_302_FOUND)
 
     if amount is None:
         if request.headers.get("content-type") == "application/json":
@@ -207,5 +226,4 @@ async def buy_stock(
             f'{amount} units of stock {stock_symbol} were added to your stock record',
             status_code=HTTP_203_NON_AUTHORITATIVE_INFORMATION
         )
-    redirect = await redirect_with_message("/welcome", "Purchase successful!", status_code=HTTP_302_FOUND)
-    return redirect
+    return await redirect_with_message("/welcome", "Purchase successful!", status_code=HTTP_302_FOUND)
