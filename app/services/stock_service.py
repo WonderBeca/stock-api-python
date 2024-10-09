@@ -12,7 +12,7 @@ from app.schemas.stock_schema import StockCreate
 from app.services.scraper_service import MarketWacth
 
 marketwatch_cache = {}
-CACHE_EXPIRATION_TIME = 300
+CACHE_EXPIRATION_TIME = os.getenv("CACHE_EXPIRATION_TIME", 300)
 
 
 async def get_marketwatch_data(stock_symbol: str, date: str = None):
