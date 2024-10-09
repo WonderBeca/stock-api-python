@@ -1,3 +1,4 @@
+from passlib.context import CryptContext
 from app.database.database import get_db
 from datetime import datetime, timedelta
 from jose import JWTError, jwt, ExpiredSignatureError
@@ -11,6 +12,7 @@ import logging
 SECRET_KEY = "beca"  # Secret key for signing the token
 ALGORITHM = "HS256"  # Signing algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = 30  # Token expiration time in minutes
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """
@@ -121,3 +123,28 @@ async def requires_authentication(request: Request, db: AsyncSession = Depends(g
         )
 
     return user.id  # Return the authenticated user's ID
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Verify if a plain password matches a hashed password.
+
+    Args:
+        plain_password (str): The plain password to be checked.
+        hashed_password (str): The hashed password to compare with.
+
+    Returns:
+        bool: True if the password matches, False otherwise.
+    """
+    return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    """
+    Hash the provided password.
+
+    Args:
+        password (str): The password to be hashed.
+
+    Returns:
+        str: The hashed password.
+    """
+    return pwd_context.hash(password)

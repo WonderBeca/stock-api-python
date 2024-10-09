@@ -7,7 +7,8 @@ from starlette.status import HTTP_302_FOUND
 from passlib.context import CryptContext
 from app.database.database import get_db
 from app.models.user_model import User
-from app.utils.auth_utils import create_access_token, requires_authentication
+from app.utils.auth_utils import (
+    create_access_token, requires_authentication, verify_password, get_password_hash)
 from app.services.stock_service import (
     get_stocks_history_by_user, get_stocks_total_by_user
 )
@@ -17,31 +18,6 @@ router = APIRouter()
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verify if a plain password matches a hashed password.
-
-    Args:
-        plain_password (str): The plain password to be checked.
-        hashed_password (str): The hashed password to compare with.
-
-    Returns:
-        bool: True if the password matches, False otherwise.
-    """
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_password_hash(password: str) -> str:
-    """
-    Hash the provided password.
-
-    Args:
-        password (str): The password to be hashed.
-
-    Returns:
-        str: The hashed password.
-    """
-    return pwd_context.hash(password)
 
 async def get_user_by_username(db: AsyncSession, username: str) -> User:
     """
@@ -195,7 +171,6 @@ async def login(
     access_token = create_access_token(data={"sub": user.username})
     response = RedirectResponse(url="/welcome", status_code=HTTP_302_FOUND)
     response.set_cookie(key="access_token", value=access_token, httponly=True)
-
     if request.headers.get("content-type") == "application/json":
         return JSONResponse({"access_token": access_token}, status_code=200)
     return response
