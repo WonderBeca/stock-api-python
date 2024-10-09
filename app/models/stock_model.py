@@ -1,13 +1,15 @@
-from sqlalchemy import Column, String, Integer, Date, JSON, UUID, DateTime, ForeignKey
-from sqlalchemy.orm import relationship
-import uuid
-from app.database.database import Base
 from datetime import datetime
+import uuid
+
+from sqlalchemy import Column, Date, DateTime, ForeignKey, Integer, JSON, String, UUID
+from sqlalchemy.orm import relationship
+
+from app.database.database import Base
 
 
 class Stock(Base):
     __tablename__ = 'stocks'
-    
+
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     request_data = Column(Date)
     company_code = Column(String)
@@ -17,6 +19,7 @@ class Stock(Base):
     competitors = Column(JSON)
     timestamp = Column(DateTime, default=datetime.now)
     purchases = relationship("StockPurchase", back_populates="stock")
+
 
 class StockPurchase(Base):
     __tablename__ = 'stock_purchases'

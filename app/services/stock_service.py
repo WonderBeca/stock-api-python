@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 
 from fastapi import HTTPException
 from sqlalchemy import func, case
-from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -13,12 +12,12 @@ from app.schemas.stock_schema import StockCreate
 from app.services.scraper_service import MarketWacth
 
 marketwatch_cache = {}
-CACHE_EXPIRATION_TIME = 300
+CACHE_EXPIRATION_TIME = os.getenv("CACHE_EXPIRATION_TIME", 300)
 
 
 async def get_marketwatch_data(stock_symbol: str, date: str = None):
     """
-    Retrieves market data for a given stock symbol from MarketWatch, using caching 
+    Retrieves market data for a given stock symbol from MarketWatch, using caching
     to improve performance and reduce the number of requests to the source.
 
     Args:
@@ -26,7 +25,7 @@ async def get_marketwatch_data(stock_symbol: str, date: str = None):
         date (str, optional): The date for which to retrieve the data. Defaults to None.
 
     Returns:
-        dict or None: The market data for the specified stock symbol, or None if no data 
+        dict or None: The market data for the specified stock symbol, or None if no data
         could be retrieved from MarketWatch.
     """
     cache_key = f"{stock_symbol}_{date}" if date else stock_symbol
@@ -43,7 +42,7 @@ async def get_marketwatch_data(stock_symbol: str, date: str = None):
 
     if marketwatch_data:
         marketwatch_cache[cache_key] = (marketwatch_data, current_time)
-    
+
     return marketwatch_data
 
 
@@ -120,7 +119,7 @@ async def create_stock(db: AsyncSession, stock: StockCreate) -> Stock:
 
     Returns:
         Stock: The created Stock object.
-    
+
     Raises:
         HTTPException: If there is an error creating the stock.
     """
@@ -146,7 +145,7 @@ async def purchase_stock(db: AsyncSession, user_id: str, symbol: str, amount: fl
 
     Returns:
         list: A list of StockPurchase objects for the user.
-    
+
     Raises:
         HTTPException: If the stock is not found or an error occurs during the purchase.
     """
@@ -175,7 +174,7 @@ async def get_stocks_history_by_user(db: AsyncSession, user_id: str) -> list:
 
     Returns:
         list: A list of StockPurchase objects for the user.
-    
+
     Raises:
         HTTPException: If there is an error retrieving the purchase history.
     """
@@ -196,7 +195,7 @@ async def get_stocks_total_by_user(db: AsyncSession, user_id: str) -> list:
 
     Returns:
         list: A list of tuples containing stock symbols and their total amounts.
-    
+
     Raises:
         HTTPException: If there is an error retrieving the total amounts.
     """
@@ -219,7 +218,8 @@ async def get_stocks_total_by_user(db: AsyncSession, user_id: str) -> list:
         raise HTTPException(status_code=500, detail=f"Error retrieving total stock amounts: {str(e)}")
 
 
-async def update_stock_amount(db: AsyncSession, user_id: str, stock_symbol: str, amount: float, current_amount: float) -> StockPurchase:
+async def update_stock_amount(db: AsyncSession, user_id: str,
+                              stock_symbol: str, amount: float, current_amount: float) -> StockPurchase:
     """
     Updates the stock amount for a user based on their current holdings.
 
@@ -237,7 +237,7 @@ async def update_stock_amount(db: AsyncSession, user_id: str, stock_symbol: str,
         HTTPException: If the stock is not found or if an unexpected status is encountered.
     """
     stock = await get_stock_by_symbol(db, stock_symbol)
-    
+
     if not stock:
         raise HTTPException(status_code=404, detail="Stock not found in user's wallet.")
 

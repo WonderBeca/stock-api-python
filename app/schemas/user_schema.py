@@ -2,9 +2,11 @@
 
 from pydantic import BaseModel
 
+
 class UserCreate(BaseModel):
     username: str
     password: str
+
 
 class UserResponse(BaseModel):
     id: str
@@ -12,6 +14,7 @@ class UserResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class Token(BaseModel):
     access_token: str
