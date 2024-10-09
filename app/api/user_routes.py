@@ -133,11 +133,11 @@ async def login(
     if request.headers.get("content-type") == "application/json":
         body = await request.json()
         username = body.get("username")
-        password = body.get("password")
+        password = str(body.get("password"))
     elif username is None or password is None:
         form_data = await request.form()
         username = form_data.get("username")
-        password = form_data.get("password")
+        password = str(form_data.get("password"))
 
     if not username or not password:
         error_msg = "Username and password are required."
